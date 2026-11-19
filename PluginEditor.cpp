@@ -11,7 +11,7 @@ using GrMenu::fnt;
 //==============================================================================
 namespace
 {
-    const Colour cAccent (0xffff4a3d), cText (0xffd9dde4), cTextHi (0xfff1f3f6), cDim (0xff8a919c),
+    const Colour cAccent (0xffff4a3d), cText (0xffe4e7ec), cTextHi (0xfff7f8fa), cDim (0xff9ca3ad),
                  cLine (0xffbfc4cc), cGreen (0xff3fe06a), cYellow (0xffffcc2e), cRed (0xffff3b30), cCyan (0xff38d6ff);
 
     double nowS() { return Time::getMillisecondCounterHiRes() * 0.001; }
@@ -43,7 +43,7 @@ namespace
             const float rowTone = nd (rng) * 0.6f;
             for (int x = 0; x < W; ++x)
             {
-                const float v = 25.0f + row[(size_t) x] * 9.0f + rowTone + nd (rng) * 1.0f;
+                const float v = 21.0f + row[(size_t) x] * 11.0f + rowTone + nd (rng) * 1.2f;
                 const uint8 a = (uint8) jlimit (0, 255, (int) v), b = (uint8) jlimit (0, 255, (int) (v + 1.0f)), c = (uint8) jlimit (0, 255, (int) (v + 3.0f));
                 bd.setPixelColour (x, y, Colour (a, b, c));
             }
@@ -55,14 +55,16 @@ namespace
     void paintLight (Graphics& g, Rectangle<float> r)
     {
         const float d = r.getWidth() + r.getHeight();
-        ColourGradient lit (Colours::white.withAlpha (0.06f), r.getX(), r.getY(),
-                            Colours::black.withAlpha (0.18f), r.getX() + d * 0.5f, r.getY() + d * 0.5f, false);
+        // source sur la diagonale exacte du coin haut gauche : même décalage en x et en y
+        ColourGradient lit (Colours::white.withAlpha (0.13f), r.getX(), r.getY(),
+                            Colours::black.withAlpha (0.42f), r.getX() + d * 0.5f, r.getY() + d * 0.5f, false);
+        lit.addColour (0.45, Colours::transparentBlack);
         g.setGradientFill (lit);
         g.fillRect (r);
         const float c = d * 0.38f;
         ColourGradient sat (Colours::transparentWhite, r.getX() + c * 0.5f - d * 0.06f, r.getY() + c * 0.5f - d * 0.06f,
                             Colours::transparentWhite, r.getX() + c * 0.5f + d * 0.06f, r.getY() + c * 0.5f + d * 0.06f, false);
-        sat.addColour (0.5, Colours::white.withAlpha (0.035f));
+        sat.addColour (0.5, Colours::white.withAlpha (0.06f));
         g.setGradientFill (sat);
         g.fillRect (r);
     }
@@ -77,14 +79,14 @@ namespace
     {
         for (int i = 6; i >= 0; --i)
         {
-            const float e = (0.8f + (float) i * 1.7f) * s, d = depth * s * (0.55f + 0.075f * (float) i);
-            g.setColour (Colours::black.withAlpha (0.07f));
+            const float e = (0.8f + (float) i * 2.0f) * s, d = depth * s * (0.9f + 0.16f * (float) i);
+            g.setColour (Colours::black.withAlpha (0.11f));
             g.fillRoundedRectangle (r.translated (d, d).expanded (e), rad + e);
         }
         for (int i = 3; i >= 1; --i)
         {
-            const float e = (float) i * 0.9f * s;
-            g.setColour (Colours::black.withAlpha (0.12f));
+            const float e = (float) i * 1.1f * s;
+            g.setColour (Colours::black.withAlpha (0.20f));
             g.fillRoundedRectangle (r.expanded (e), rad + e);
         }
     }
@@ -103,7 +105,7 @@ namespace
         for (int i = 1; i <= 4; ++i)
         {
             const float d = (float) i * 1.3f * s * depth;
-            g.setColour (Colours::black.withAlpha (0.14f));
+            g.setColour (Colours::black.withAlpha (0.22f));
             g.drawRoundedRectangle (r.translated (d, d).expanded (d), rad + d, 2.0f * d);
         }
         g.restoreState();
@@ -318,8 +320,8 @@ void GrinderEditor::paintPanel (Graphics& g, Rectangle<float> r)
 {
     // cadre sérigraphié (trait fin), comme les zones d'une façade de rack
     const float s = sc();
-    g.setColour (cLine.withAlpha (0.55f));
-    g.drawRoundedRectangle (r, 14 * s, 1.6f * s);
+    g.setColour (cLine.withAlpha (0.72f));
+    g.drawRoundedRectangle (r, 14 * s, 1.7f * s);
 }
 
 void GrinderEditor::paintScale (Graphics& g, Point<float> c, float r)
@@ -356,8 +358,8 @@ void GrinderEditor::paintLed (Graphics& g, Point<float> c, float rad, Colour col
     // bague en relief : ombre portée à 45° vers le bas à droite
     for (int i = 3; i >= 0; --i)
     {
-        const float e = r * 2.0f + (1.5f + 1.6f * (float) i) * s, d = (0.8f + 0.4f * (float) i) * s;
-        g.setColour (Colours::black.withAlpha (0.10f));
+        const float e = r * 2.0f + (1.8f + 2.0f * (float) i) * s, d = (1.2f + 0.8f * (float) i) * s;
+        g.setColour (Colours::black.withAlpha (0.16f));
         g.fillEllipse (Rectangle<float> (e, e).withCentre (c.translated (d, d)));
     }
     ColourGradient ring (Colour (0xff70757e), c.x - r, c.y - r, Colour (0xff121417), c.x + r, c.y + r, false);
@@ -451,8 +453,8 @@ void GrinderEditor::paintScrew (Graphics& g)
     // tête de vis
     for (int i = 3; i >= 0; --i)
     {
-        const float d = (0.8f + 0.5f * (float) i) * s;
-        g.setColour (Colours::black.withAlpha (0.12f));
+        const float d = (1.2f + 1.0f * (float) i) * s;
+        g.setColour (Colours::black.withAlpha (0.18f));
         g.fillEllipse (Rectangle<float> (rad * 2 + d, rad * 2 + d).withCentre (c.translated (d, d)));
     }
     ColourGradient head (Colour (0xffc7ccd3), c.x - rad, c.y - rad, Colour (0xff4b5058), c.x + rad, c.y + rad, false);
@@ -539,11 +541,8 @@ void GrinderEditor::paintFace (Graphics& g)
     paintPanel (g, R (70, 108, 1460, 178));
 
     // BYPASS
-    g.setColour (cText);
-    g.setFont (font (2, 13 * s).withExtraKerningFactor (0.08f));
-    g.drawText ("BYPASS", R (84, 126, 120, 18), Justification::centred, false);
-    paintLed (g, { 144 * s, 168 * s }, 7.0f, cRed, bypassLed);
-    paintButton (g, bypassBtn(), "BY PASS", pressed == 1);
+    paintLed (g, { 144 * s, 160 * s }, 7.0f, cRed, bypassLed);
+    paintButton (g, bypassBtn(), "BYPASS", pressed == 1);
 
     // réduction de gain : 16 voyants
     g.setFont (font (1, 13 * s));
@@ -633,6 +632,24 @@ void GrinderEditor::paintFace (Graphics& g)
 
     //-------------------------------------------------------------- zone basse : potards
     paintPanel (g, R (70, 300, 1460, 226));
+    auto faceAo = [&] (float cx, float cy, float rr)
+    {
+        // occlusion autour du pied du potard, puis ombre portée douce vers le bas à droite (45°)
+        const Point<float> c (cx * s, cy * s);
+        const float R0 = rr * 1.10f * s;
+        ColourGradient ao (Colours::black.withAlpha (0.55f), c.x, c.y, Colours::transparentBlack, c.x + R0 * 1.35f, c.y, true);
+        ao.addColour (0.70, Colours::black.withAlpha (0.40f));
+        g.setGradientFill (ao);
+        g.fillEllipse (Rectangle<float> (R0 * 2.7f, R0 * 2.7f).withCentre (c));
+        const float off = rr * 0.16f * s;
+        const Point<float> sc (c.x + off, c.y + off);
+        ColourGradient sh (Colours::black.withAlpha (0.50f), sc.x, sc.y, Colours::transparentBlack, sc.x + R0 * 1.55f, sc.y, true);
+        sh.addColour (0.62, Colours::black.withAlpha (0.30f));
+        g.setGradientFill (sh);
+        g.fillEllipse (Rectangle<float> (R0 * 3.1f, R0 * 3.1f).withCentre (sc));
+    };
+    for (float x : { 360.0f, 600.0f, 840.0f, 1080.0f }) faceAo (x, 404, 60);
+    faceAo (1256, 404, 34);
     for (float x : { 360.0f, 600.0f, 840.0f, 1080.0f }) paintScale (g, { x * s, 404 * s }, 60);
     g.setColour (cTextHi);
     g.setFont (font (2, 17 * s).withExtraKerningFactor (0.10f));
