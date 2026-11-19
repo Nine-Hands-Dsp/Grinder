@@ -3,12 +3,12 @@
 Compresseur VST3 (Windows et macOS) « classic knee » dans l'esprit de l'Empirical Labs EL8 Distressor tel qu'émulé par UAD : 8 ratios du 1:1 (couleur seule) au NUKE (mur de brique), détecteur et modes audio commutables, distorsion harmonique 2 (lampe) ou 3 (bande), Headroom réglable, MIX parallèle, et les options de la version X (Brit, Image Link).
 
 <p align="center">
-  <a href="https://github.com/Nine-Hands-Dsp/distress/releases/latest/download/Grinder-VST3-Windows.zip"><img alt="Télécharger pour Windows" src="https://img.shields.io/badge/%E2%AC%87%20T%C3%A9l%C3%A9charger-Windows-0078D6?style=for-the-badge"></a>
-  <a href="https://github.com/Nine-Hands-Dsp/distress/releases/latest/download/Grinder-VST3-macOS.zip"><img alt="Télécharger pour macOS" src="https://img.shields.io/badge/%E2%AC%87%20T%C3%A9l%C3%A9charger-macOS-111111?style=for-the-badge&logo=apple&logoColor=white"></a>
+  <a href="https://github.com/Nine-Hands-Dsp/Grinder/releases/latest/download/Grinder-VST3-Windows.zip"><img alt="Télécharger pour Windows" src="https://img.shields.io/badge/%E2%AC%87%20T%C3%A9l%C3%A9charger-Windows-0078D6?style=for-the-badge"></a>
+  <a href="https://github.com/Nine-Hands-Dsp/Grinder/releases/latest/download/Grinder-VST3-macOS.zip"><img alt="Télécharger pour macOS" src="https://img.shields.io/badge/%E2%AC%87%20T%C3%A9l%C3%A9charger-macOS-111111?style=for-the-badge&logo=apple&logoColor=white"></a>
   <br>
-  <a href="https://github.com/Nine-Hands-Dsp/distress/releases/latest/download/Grinder-Notice.pdf"><img alt="Télécharger la notice (PDF)" src="https://img.shields.io/badge/%F0%9F%93%96%20Notice-PDF-919496?style=for-the-badge"></a>
+  <a href="https://github.com/Nine-Hands-Dsp/Grinder/releases/latest/download/Grinder-Notice.pdf"><img alt="Télécharger la notice (PDF)" src="https://img.shields.io/badge/%F0%9F%93%96%20Notice-PDF-919496?style=for-the-badge"></a>
   <br>
-  <a href="https://github.com/Nine-Hands-Dsp/distress/releases/latest"><img alt="Dernière version" src="https://img.shields.io/github/v/release/Nine-Hands-Dsp/distress?label=derni%C3%A8re%20version&color=ff4a3d"></a>
+  <a href="https://github.com/Nine-Hands-Dsp/Grinder/releases/latest"><img alt="Dernière version" src="https://img.shields.io/github/v/release/Nine-Hands-Dsp/Grinder?label=derni%C3%A8re%20version&color=ff4a3d"></a>
 </p>
 
 ## Fonctions
