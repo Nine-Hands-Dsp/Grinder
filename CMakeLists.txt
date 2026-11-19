@@ -6,7 +6,7 @@ if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "" FORCE)
 endif()
 
-project(Grinder VERSION 1.0.2)
+project(Grinder VERSION 1.0.3)
 
 include(FetchContent)
 FetchContent_Declare(JUCE

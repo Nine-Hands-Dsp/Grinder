@@ -503,7 +503,7 @@ void GrinderEditor::paintFace (Graphics& g)
     g.setFont (font (1, 12 * s).withExtraKerningFactor (0.12f));
     g.drawText ("CLASSIC KNEE COMPRESSOR", R (80, 66, 400, 18), Justification::centredLeft, false);
     if (auto* lg = logo.get())
-        lg->drawWithin (g, R (1270, 38, 250, 22), RectanglePlacement::xRight | RectanglePlacement::yMid, 0.92f);
+        lg->drawWithin (g, R (1340, 41, 180, 16), RectanglePlacement::xRight | RectanglePlacement::yMid, 0.92f);
 
     // barre de presets / ligne d'état (même pastille)
     {
