@@ -47,11 +47,11 @@ f += bullets(["<b>1:1</b> : aucune compression. Le son traverse seulement les é
               "<b>20:1 et NUKE</b> : limitation dure. NUKE est un mur de brique au seuil un peu plus haut, avec un relâchement logarithmique (rapide au début, puis de plus en plus lent)."])
 f.append(Spacer(1, 2 * mm))
 f.append(KeepTogether([table([["Entrée (1 kHz)", "−20 dBFS", "−15 dBFS", "−10 dBFS", "−5 dBFS", "0 dBFS"],
-                ["2:1", "0,7 dB", "1,6 dB", "3,0 dB", "4,7 dB", "6,9 dB"],
-                ["4:1", "0 dB", "0,9 dB", "3,2 dB", "6,6 dB", "10,3 dB"],
-                ["6:1", "0 dB", "0,6 dB", "3,3 dB", "7,4 dB", "11,5 dB"],
-                ["10:1 Opto", "0 dB", "0,4 dB", "4,1 dB", "8,6 dB", "13,1 dB"],
-                ["NUKE", "0 dB", "0 dB", "1,9 dB", "6,7 dB", "11,6 dB"]],
+                ["2:1", "0,7 dB", "1,6 dB", "3,0 dB", "4,8 dB", "7,0 dB"],
+                ["4:1", "0 dB", "1,0 dB", "3,2 dB", "6,7 dB", "10,5 dB"],
+                ["6:1", "0 dB", "0,7 dB", "3,4 dB", "7,5 dB", "11,7 dB"],
+                ["10:1 Opto", "0 dB", "0,5 dB", "4,4 dB", "8,9 dB", "13,4 dB"],
+                ["NUKE", "0 dB", "0 dB", "2,0 dB", "6,9 dB", "12,0 dB"]],
                [30 * mm] + [(W - 30 * mm) / 5] * 5),
     P("Réduction de gain mesurée en régime établi (INPUT 5, ATTACK 5, RELEASE 5, détecteur neutre).", "small")]))
 
@@ -66,10 +66,10 @@ f += bullets(["<b>HP</b> (voyant vert) : passe-haut de 100 Hz, 6 dB/oct, dans le
 # ---------- 6. Audio ----------
 f.append(P("6. Les modes audio (AUDIO) et la distorsion", "h1"))
 f += bullets(["<b>HP</b> (vert) : filtre de Bessel du 3e ordre (18 dB/oct) sur le son : environ −3 dB à 65 Hz et −12 dB à 30 Hz. Nettoie le sub-grave sans déphaser le reste.",
-              "<b>DIST 2</b> (jaune) : ajoute surtout l'harmonique 2, chaude, façon lampe. Mesuré à 1 kHz au ratio 1:1 : 0,5 % à −20 dBFS, 2,7 % à −6 dBFS, 5,3 % à 0 dBFS.",
-              "<b>DIST 3</b> (rouge) : ajoute surtout l'harmonique 3, façon bande saturée ; très discrète à bas niveau, elle monte vite quand on pousse (0,6 % à −6 dBFS, 2,3 % à 0 dBFS, bien plus avec INPUT et HR hauts).",
-              "Combinaisons : HP + DIST 2 et HP + DIST 3. Sans mode de distorsion, Grinder reste propre (environ 0,02 à 0,3 %).",
-              "Un relâchement très court ajoute aussi de la distorsion, surtout sur la basse : la compression module alors chaque période du signal, comme sur le matériel.",
+              "<b>DIST 2</b> (jaune) : ajoute surtout l'harmonique 2, chaude, façon lampe. Mesuré à 1 kHz au ratio 1:1 : 0,4 % à −20 dBFS, 2,2 % à −6 dBFS, 4,4 % à 0 dBFS.",
+              "<b>DIST 3</b> (rouge) : ajoute surtout l'harmonique 3, façon bande saturée ; très discrète à bas niveau, elle monte vite quand on pousse (0,5 % à −6 dBFS, 1,9 % à 0 dBFS, bien plus avec INPUT et HR hauts).",
+              "Combinaisons : HP + DIST 2 et HP + DIST 3. Sans mode de distorsion, Grinder reste propre : 0,02 % à −30 dBFS, 0,27 % à −6 dBFS, presque uniquement de l'harmonique 2.",
+              "Un relâchement très court ajoute aussi de la distorsion, surtout sur la basse : le détecteur suit la crête du signal (retombée de 5 ms), la compression module alors chaque période des notes graves, comme sur le matériel.",
               "<b>HR</b> déplace la limite des étages non linéaires : 4 dB = peu de marge, saturation rapide et beaucoup de couleur ; 28 dB = grande marge, son plus propre. Les voyants 1% THD et REDLINE aident à doser."])
 
 # ---------- 7. Options X ----------
@@ -132,6 +132,8 @@ f.append(KeepTogether([P("12. Caractéristiques techniques", "h1"), table([
     ["Audio", "HP Bessel 18 dB/oct (−3 dB à 65 Hz), DIST 2 (harmonique 2), DIST 3 (harmonique 3)"],
     ["Headroom", "4 à 28 dB par pas de 4, 16 dB par défaut"],
     ["Suréchantillonnage", "4x (demi-bande RIF), désactivable ; latence de quelques échantillons, compensée par le DAW"],
+    ["Commutations", "fondu de 10 ms sur les modes, les filtres, BRIT, LINK et HR : aucun clic"],
+    ["Charge CPU", "environ 3 % d'un cœur en 4x, moins de 1 % sans suréchantillonnage (stéréo, 48 kHz)"],
     ["MIDI", "MIDI Learn sur tous les réglages, aucun CC par défaut"],
     ["Fenêtre", "60 / 75 / 100 %, jusqu'à 150 %, jamais sous 60 % ; anti-gel v2 sous Windows"]],
     [36 * mm, W - 36 * mm], header=False)]))

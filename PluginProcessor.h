@@ -99,7 +99,8 @@ private:
 
     // valeurs lissées
     double sIn = 1, sOut = 1, sMix = 1, sWet = 1;
-    double thdAcc = 0.0;
+    double thdAcc = 0.0, sLink = 0.0;
+    bool needSnap = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GrinderProcessor)
 };

@@ -45,4 +45,5 @@ Outil de captures et de mesures sous Linux : `tools/render` (`cmake tools/render
 
 ## Historique
 
+- **1.0.1** : moteur audio optimisé : charge CPU divisée par 3 (coefficients calculés par bloc, saturations rationnelles, détecteur sauté sous le genou), détecteur crête qui donne la vraie attaque (30 ms à 10), commutations sans clic (fondus de 10 ms), étage propre plus propre (distorsion en u⁴ au repos), piste mono calculée sur un seul canal.
 - **1.0.0** : première version (anti-gel v2 sous Windows).

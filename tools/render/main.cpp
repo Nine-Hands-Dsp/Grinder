@@ -154,6 +154,42 @@ int main()
         std::cout << "== 1:1, -18 dBFS -> " << String (rmsDb (y, (int) (0.3 * fs), 4800), 2) << " dBFS ==\n";
     }
 
+
+
+    std::cout << "== commutations sans clic : saut maximal de la derivee seconde (sinus 200 Hz, -12 dBFS) ==\n";
+    for (const char* id : { "dist", "audiohp", "dethp", "hr", "brit" })
+    {
+        set (p, "ratio", 4); set (p, "dist", 0); set (p, "audiohp", 0); set (p, "dethp", 0); set (p, "hr", 3); set (p, "brit", 0);
+        p.prepareToPlay (fs, 256);
+        auto y = tone (200, { { 1.0, -12 } }, fs);
+        MidiBuffer m; int half = (int) (0.5 * fs);
+        for (int s0 = 0; s0 < y.getNumSamples(); s0 += 256)
+        {
+            if (s0 == (half / 256) * 256) set (p, id, String (id) == "hr" ? 0.0f : String (id) == "dist" ? 2.0f : 1.0f);
+            AudioBuffer<float> blk (y.getArrayOfWritePointers(), 2, s0, jmin (256, y.getNumSamples() - s0));
+            p.processBlock (blk, m);
+        }
+        auto d2 = [&] (int a, int b) { double mx = 0; for (int i = a; i < b; ++i) mx = jmax (mx, (double) std::abs (y.getSample (0, i + 1) - 2 * y.getSample (0, i) + y.getSample (0, i - 1))); return mx; };
+        std::cout << "  " << id << " : avant " << String (d2 (half - 4800, half - 512), 5) << "  pendant " << String (d2 (half - 256, half + 2400), 5)
+                  << "  apres " << String (d2 (half + 9600, half + 14400), 5) << "\n";
+    }
+    set (p, "dist", 0); set (p, "audiohp", 0); set (p, "dethp", 0); set (p, "hr", 3); set (p, "brit", 0);
+
+    std::cout << "== charge CPU : 20 s de bruit stereo a 48 kHz, blocs de 256 ==\n";
+    for (int osOn : { 1, 0 })
+    {
+        set (p, "os", (float) osOn); set (p, "ratio", 4); set (p, "dist", 2); set (p, "dethp", 1); set (p, "detband", 1);
+        p.prepareToPlay (fs, 256);
+        AudioBuffer<float> y (2, (int) (20 * fs));
+        std::mt19937 rng (5); std::normal_distribution<float> nd (0.0f, 0.2f);
+        for (int c = 0; c < 2; ++c) for (int i = 0; i < y.getNumSamples(); ++i) y.setSample (c, i, nd (rng));
+        const double t0 = Time::getMillisecondCounterHiRes();
+        run (p, y);
+        const double ms = Time::getMillisecondCounterHiRes() - t0;
+        std::cout << "  OS " << (osOn ? "4x" : "off") << " : " << String (ms, 0) << " ms pour 20 s (" << String (ms / 200.0, 2) << " % d'un coeur)\n";
+    }
+    set (p, "os", 1); set (p, "dist", 0); set (p, "dethp", 0); set (p, "detband", 0);
+
     //------------------------------------------------------------------ captures
     {
         p.loadFactoryPreset (0);

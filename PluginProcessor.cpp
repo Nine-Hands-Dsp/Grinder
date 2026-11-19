@@ -110,6 +110,7 @@ void GrinderProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     osLatency = (int) std::round (os->getLatencyInSamples());
     lastOs = pOs->load() > 0.5f ? 1 : 0;
     prepareChannels (lastOs ? sr * 4.0 : sr);
+    needSnap = true;
     activeLatency = lastOs ? osLatency : 0;
     setLatencySamples (activeLatency);
 
@@ -172,6 +173,7 @@ void GrinderProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& mid
     {
         lastOs = osOn ? 1 : 0;
         prepareChannels (osOn ? sr * 4.0 : sr);
+        needSnap = true;
         if (os != nullptr) os->reset();
         activeLatency = osOn ? osLatency : 0;
         dryDelay.clear();
@@ -194,49 +196,65 @@ void GrinderProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& mid
     const bool image = pImage->load() > 0.5f && numCh > 1;
     const bool power = pPower->load() > 0.5f, bypass = pBypass->load() > 0.5f;
 
-    // marge interne : le plafond des étages non linéaires est à (32 - HR) dB au-dessus de 0 dBFS
-    const double ceil = ds::dbToGain (32.0 - p.hr);
     // seuil du détecteur (dB, niveau interne après INPUT) ; Link sans second appareil le fait descendre
     const double thresh = -14.0 - (p.deadPatch ? 6.0 : 0.0);
+    const double coreRate = osOn ? sr * 4.0 : sr;
+    ds::Block blkP;
+    blkP.make (p, coreRate, thresh);           // marge interne : plafond des étages non linéaires à (32 - HR) dB au-dessus de 0 dBFS
+    if (needSnap) { for (auto& c : chan) c.snapTo (blkP); sLink = p.link ? 1.0 : 0.0; needSnap = false; }
+    const double linkT = (p.link && numCh > 1) ? 1.0 : 0.0;
+    const int nc = numCh > 1 ? 2 : 1;          // piste mono : un seul canal calculé
 
     float* out[2] = { buffer.getWritePointer (0), buffer.getWritePointer (numCh > 1 ? 1 : 0) };
     for (int ch = 0; ch < 2; ++ch)
         for (int i = 0; i < n; ++i) dryBuf.setSample (ch, i, out[ch < numCh ? ch : 0][i]);
 
     //-------------------------------------------------------------- gain d'entrée (avant suréchantillonnage, lissé)
-    const double aS = 1.0 - std::exp (-1.0 / (0.02 * sr));
+    const double aS = ds::coef (0.02, sr);
     const double inT = ds::dbToGain (ds::inputDb (pInput->load()));
     for (int i = 0; i < n; ++i)
     {
         sIn += (inT - sIn) * aS;
-        for (int ch = 0; ch < 2; ++ch) wetBuf.setSample (ch, i, (float) (dryBuf.getSample (ch, i) * sIn));
+        for (int ch = 0; ch < nc; ++ch) wetBuf.setSample (ch, i, (float) (dryBuf.getSample (ch, i) * sIn));
     }
+    if (nc == 1) wetBuf.clear (1, 0, n);
 
-    //-------------------------------------------------------------- compresseur (dans le suréchantillonnage)
+    //-------------------------------------------------------------- compresseur + étage de sortie (dans le suréchantillonnage)
     double sigE = 1.0e-12, errE = 0.0, grMax = 0.0;
+    const double outT = ds::dbToGain (ds::outputDb (pOutput->load()));
+    const double aO = ds::coef (0.02, coreRate);
     auto runCore = [&] (float* const* d, int len)
     {
         for (int i = 0; i < len; ++i)
         {
-            double x[2], lvl[2];
+            double x[2] { 0, 0 }, lvl[2] { 0, 0 }, g[2] { 1, 1 };
             double e = 0.0;
-            for (int ch = 0; ch < 2; ++ch)
+            for (int ch = 0; ch < nc; ++ch)
             {
-                x[ch] = ds::Channel::inputStage (d[ch][i], ceil, e);
-                lvl[ch] = chan[ch].sidechain (x[ch], p);
+                chan[ch].fades (blkP);
+                x[ch] = chan[ch].inputStage (d[ch][i], e);
+                lvl[ch] = chan[ch].sidechain (x[ch], blkP);
             }
-            if (p.link && numCh > 1) { const double m = 0.5 * (lvl[0] + lvl[1]); lvl[0] = lvl[1] = m; }   // détecteurs additionnés
-            double g[2];
-            for (int ch = 0; ch < 2; ++ch) g[ch] = chan[ch].computeGain (lvl[ch], p, thresh);
-            if (image) { const double gm = jmin (g[0], g[1]); g[0] = g[1] = gm; }                            // réduction identique
-            for (int ch = 0; ch < 2; ++ch)
+            if (nc == 2)
             {
-                const double y = chan[ch].audioModes (x[ch] * g[ch], p, ceil, e);
-                d[ch][i] = (float) y;
-                sigE += y * y;
+                sLink += (linkT - sLink) * blkP.aFade;                      // détecteurs additionnés (fondu)
+                const double m = 0.5 * (lvl[0] + lvl[1]);
+                lvl[0] += (m - lvl[0]) * sLink; lvl[1] += (m - lvl[1]) * sLink;
+            }
+            for (int ch = 0; ch < nc; ++ch) g[ch] = chan[ch].computeGain (lvl[ch], blkP);
+            if (image && nc == 2) { const double gm = jmin (g[0], g[1]); g[0] = g[1] = gm; }   // réduction identique
+            sOut += (outT - sOut) * aO;
+            for (int ch = 0; ch < nc; ++ch)
+            {
+                const double y = chan[ch].audioModes (x[ch] * g[ch], e) * sOut;
+                const double c = chan[ch].ceil;
+                const double z = ds::softClip (y, 1.0 / c, c, 0.02);       // étage de sortie
+                e += (z - y) * (z - y);
+                d[ch][i] = (float) z;
+                sigE += z * z;
             }
             errE += e;
-            grMax = jmax (grMax, chan[0].gr, numCh > 1 ? chan[1].gr : 0.0);
+            grMax = jmax (grMax, chan[0].gr, nc > 1 ? chan[1].gr : 0.0);
         }
     };
     if (osOn && os != nullptr)
@@ -245,43 +263,18 @@ void GrinderProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& mid
         auto up = os->processSamplesUp (blk);
         float* ptr[2] = { up.getChannelPointer (0), up.getChannelPointer (1) };
         runCore (ptr, (int) up.getNumSamples());
-        // étage de sortie dans le suréchantillonnage aussi
-        const double outT = ds::dbToGain (ds::outputDb (pOutput->load()));
-        const double aO = 1.0 - std::exp (-1.0 / (0.02 * sr * 4.0));
-        for (int i = 0; i < (int) up.getNumSamples(); ++i)
-        {
-            sOut += (outT - sOut) * aO;
-            for (int ch = 0; ch < 2; ++ch)
-            {
-                const double y = ptr[ch][i] * sOut;
-                const double z = ds::softClip (y, ceil, 0.02);
-                errE += (z - y) * (z - y);
-                ptr[ch][i] = (float) z;
-            }
-        }
         os->processSamplesDown (blk);
     }
     else
     {
         float* ptr[2] = { wetBuf.getWritePointer (0), wetBuf.getWritePointer (1) };
         runCore (ptr, n);
-        const double outT = ds::dbToGain (ds::outputDb (pOutput->load()));
-        for (int i = 0; i < n; ++i)
-        {
-            sOut += (outT - sOut) * aS;
-            for (int ch = 0; ch < 2; ++ch)
-            {
-                const double y = ptr[ch][i] * sOut;
-                const double z = ds::softClip (y, ceil, 0.02);
-                errE += (z - y) * (z - y);
-                ptr[ch][i] = (float) z;
-            }
-        }
     }
+    if (nc == 1) wetBuf.copyFrom (1, 0, wetBuf, 0, 0, n);
     grDb = power ? (float) grMax : 0.0f;
     // distorsion estimée (écart non linéaire / signal), lissée sur ~150 ms
     const double thd = std::sqrt (errE / sigE) * 100.0;
-    thdAcc += (thd - thdAcc) * (1.0 - std::exp (-(double) n / (0.15 * sr)));
+    thdAcc += (thd - thdAcc) * ds::coef (0.15, sr / n);
     thdPct = power && ! bypass ? (float) thdAcc : 0.0f;
 
     //-------------------------------------------------------------- MIX (parallèle, sans décalage de phase), BYPASS, POWER
