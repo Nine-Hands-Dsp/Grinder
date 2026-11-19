@@ -1,0 +1,121 @@
+name: Build Windows + macOS
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      mac_runner:
+        description: 'Mac de GitHub : macos-15 (Apple Silicon) ou macos-15-intel'
+        default: 'macos-15'
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -B build -G "Visual Studio 17 2022" -A x64
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Grinder-VST3-Windows
+          path: build/Grinder_artefacts/Release/VST3/
+
+  macos:
+    runs-on: ${{ inputs.mac_runner || 'macos-15' }}   # Mac Apple Silicon par defaut (binaire universel) ; mac-retry.yml relance sur macos-15-intel si aucune machine n'est prise
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+      - name: Sign (ad-hoc) and zip
+        run: |
+          mkdir -p out
+          for b in build/Grinder_artefacts/VST3/*.vst3 build/Grinder_artefacts/Release/VST3/*.vst3; do
+            [ -e "$b" ] || continue
+            codesign --force --deep --sign - "$b"
+            ditto "$b" "out/$(basename "$b")"
+          done
+          cd out && ditto -c -k --keepParent Grinder.vst3 Grinder-VST3-macOS.zip && ls -la
+      - name: Upload macOS plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: Grinder-VST3-macOS
+          path: out/Grinder-VST3-macOS.zip
+
+  # Release GitHub (tag v<VERSION de CMakeLists>), fichiers à nom fixe : les boutons du README suivent chaque version
+  # Version Windows publiee sans attendre le Mac (Mac de GitHub parfois satures) ;
+  # release-mac ajoute ensuite l'archive macOS a la meme Release.
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: [windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Version
+        id: v
+        run: echo "version=$(sed -n 's/^project([A-Za-z0-9_]* VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Archives
+        run: |
+          (cd dist/Grinder-VST3-Windows && zip -r -q "$GITHUB_WORKSPACE/Grinder-VST3-Windows.zip" Grinder.vst3)
+          ls -l *.zip
+      - name: Notice
+        run: |
+          # dernière notice du dossier docs/ (hors guide MIDI), publiée sous un nom fixe
+          N=$(ls docs/*.pdf 2>/dev/null | grep -vi midi | sort -V | tail -1 || true)
+          if [ -n "$N" ]; then cp "$N" Grinder-Notice.pdf; fi
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.v.outputs.version }}"
+          FILES="Grinder-VST3-Windows.zip"
+          [ -f Grinder-Notice.pdf ] && FILES="$FILES Grinder-Notice.pdf"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" $FILES --clobber
+          else
+            gh release create "$TAG" $FILES --target "$GITHUB_SHA" --latest --title "Grinder $TAG" --notes "Installation : voir le README."
+          fi
+
+  release-mac:
+    if: github.ref == 'refs/heads/main'
+    needs: [release, windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Version
+        id: v
+        run: echo "version=$(sed -n 's/^project([A-Za-z0-9_]* VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Archives
+        run: |
+          (cd dist/Grinder-VST3-Windows && zip -r -q "$GITHUB_WORKSPACE/Grinder-VST3-Windows.zip" Grinder.vst3)
+          cp dist/Grinder-VST3-macOS/Grinder-VST3-macOS.zip .
+          ls -l *.zip
+      - name: Notice
+        run: |
+          # dernière notice du dossier docs/ (hors guide MIDI), publiée sous un nom fixe
+          N=$(ls docs/*.pdf 2>/dev/null | grep -vi midi | sort -V | tail -1 || true)
+          if [ -n "$N" ]; then cp "$N" Grinder-Notice.pdf; fi
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.v.outputs.version }}"
+          FILES="Grinder-VST3-Windows.zip Grinder-VST3-macOS.zip"
+          [ -f Grinder-Notice.pdf ] && FILES="$FILES Grinder-Notice.pdf"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" $FILES --clobber
+          else
+            gh release create "$TAG" $FILES --target "$GITHUB_SHA" --latest --title "Grinder $TAG" --notes "Installation : voir le README."
+          fi
