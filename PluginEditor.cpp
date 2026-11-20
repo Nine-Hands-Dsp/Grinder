@@ -533,7 +533,7 @@ void GrinderEditor::paintFace (Graphics& g)
         if (statusAlpha > 0.01f)
         {
             g.setColour (cAccent.brighter (0.35f).withAlpha (statusAlpha));
-            g.drawFittedText (status, p.reduced (p.getHeight() * 0.5f, 0).toNearestInt(), Justification::centred, 1, 0.6f);
+            drawStatusText (g, status, p.reduced (p.getHeight() * 0.5f, 0), font (1, 23 * s));
         }
     }
 
@@ -688,6 +688,37 @@ void GrinderEditor::paintFace (Graphics& g)
     paintButton (g, imageBtn(), "IMAGE LINK", pressed == 6);
     paintLed (g, { 1514 * s, britBtn().getCentreY() }, 5.5f, cAccent, britLed);
     paintLed (g, { 1514 * s, imageBtn().getCentreY() }, 5.5f, cAccent, imageLed);
+}
+
+//------------------------------------------------------------------ ligne d'état : chiffres à chasse fixe, centrage stable
+static float glyphW (const Font& f, juce_wchar c) { return GlyphArrangement::getStringWidth (f, String::charToString (c)); }
+
+void GrinderEditor::drawStatusText (Graphics& g, const String& text, Rectangle<float> r, Font f)
+{
+    float digitW = 0.0f;
+    for (juce_wchar c = '0'; c <= '9'; ++c) digitW = jmax (digitW, glyphW (f, c));
+    auto widthOf = [&] (const Font& ff, float dw)
+    {
+        float w = 0.0f;
+        for (auto c : text) w += CharacterFunctions::isDigit (c) ? dw : glyphW (ff, c);
+        return w;
+    };
+    float w = widthOf (f, digitW);
+    if (w > r.getWidth())                                      // texte trop long : on réduit la police, sans écraser les lettres
+    {
+        const float k = jmax (0.6f, r.getWidth() / w);
+        f = f.withHeight (f.getHeight() * k);
+        digitW *= k;
+        w = widthOf (f, digitW);
+    }
+    g.setFont (f);
+    float x = r.getCentreX() - w * 0.5f;
+    for (auto c : text)
+    {
+        const float cw = CharacterFunctions::isDigit (c) ? digitW : glyphW (f, c);
+        g.drawText (String::charToString (c), Rectangle<float> (x, r.getY(), cw, r.getHeight()), Justification::centred, false);
+        x += cw;
+    }
 }
 
 void GrinderEditor::paint (Graphics& g)
@@ -1108,7 +1139,9 @@ void GrinderEditor::timerCallback()
 
     // fondus : ligne d'état, voyants
     const float target = (t - statusTime < 2.5) ? 1.0f : 0.0f;
-    const float na = target > statusAlpha ? jmin (1.0f, statusAlpha + 0.28f) : jmax (0.0f, statusAlpha - 0.11f);
+    // fondu : monte vers 1 pendant un réglage, redescend après 2,5 s ; immobile une fois arrivé (sinon clignotement à 15 Hz)
+    const float na = target > statusAlpha ? jmin (1.0f, statusAlpha + 0.28f)
+                   : target < statusAlpha ? jmax (0.0f, statusAlpha - 0.11f) : statusAlpha;
     if (std::abs (na - statusAlpha) > 0.001f) { statusAlpha = na; askRepaint (pill().expanded (4).toNearestInt()); }
     auto fade = [] (float& v, bool on) { const float n = on ? jmin (1.0f, v + 0.45f) : jmax (0.0f, v - 0.28f); const bool ch = std::abs (n - v) > 0.001f; v = n; return ch; };
     bool lights = false;

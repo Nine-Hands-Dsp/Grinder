@@ -119,6 +119,7 @@ private:
     void paintRocker (juce::Graphics&);
     void paintScrew (juce::Graphics&);
     void paintPanel (juce::Graphics&, juce::Rectangle<float> r);
+    void drawStatusText (juce::Graphics&, const juce::String&, juce::Rectangle<float>, juce::Font);
 
     // zones (repère 1600 x 540)
     juce::Rectangle<float> pill() const       { return R (600, 31, 400, 38); }

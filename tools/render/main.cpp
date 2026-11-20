@@ -75,6 +75,38 @@ int main()
     GrinderProcessor p;
     p.prepareToPlay (fs, 256);
     MessageManager::getInstance()->runDispatchLoopUntil (50);
+    if (std::getenv ("FLICKER") != nullptr)
+
+    //------------------------------------------------------------------ scintillement de la ligne d'état : image par image
+    {
+        p.loadFactoryPreset (1);
+        p.prepareToPlay (fs, 1600);
+        std::unique_ptr<GrinderEditor> ed (dynamic_cast<GrinderEditor*> (p.createEditor()));
+        ed->setSize (1600, 540); ed->setVisible (true);
+        Image strip (Image::RGB, 420, 60 * 120, true);
+        Graphics gs (strip);
+        File log = File::getCurrentWorkingDirectory().getChildFile ("flicker.txt"); log.deleteFile();
+        String txt;
+        for (int f = 0; f < 120; ++f)
+        {
+            AudioBuffer<float> buf (2, 1600); MidiBuffer m;
+            for (int i = 0; i < 1600; ++i) { const float x = 0.3f * std::sin (0.05f * (float) (f * 1600 + i)); buf.setSample (0, i, x); buf.setSample (1, i, x); }
+            p.processBlock (buf, m);
+            if (f >= 10 && f < 40) set (p, "attack", 3.0f + 0.07f * (float) (f - 10));   // potard qui tourne pendant 1 s
+            ed->timerCallback();
+            auto img = ed->createComponentSnapshot (Rectangle<int> (590, 26, 420, 48), true, 1.0f);
+            gs.drawImageAt (img, 0, f * 60);
+            // luminance moyenne et étendue horizontale du texte (pixels clairs)
+            double sum = 0; int x0 = 999, x1 = -1;
+            for (int y = 8; y < 40; ++y) for (int x = 40; x < 380; ++x) { auto c = img.getPixelAt (x, y); const float l = c.getBrightness(); sum += l; if (l > 0.55f) { x0 = jmin (x0, x); x1 = jmax (x1, x); } }
+            txt << f << " alpha=" << String (ed->statusAlpha, 2) << " lum=" << String (sum / (32 * 340), 4) << " text=" << x0 << ".." << x1 << " status='" << ed->status << "'\n";
+        }
+        log.replaceWithText (txt);
+        File out = File::getCurrentWorkingDirectory().getChildFile ("flicker_strip.png"); out.deleteFile();
+        FileOutputStream os (out); PNGImageFormat png; png.writeImageToStream (strip, os);
+        std::cout << "flicker.txt ecrit\n";
+        return 0;
+    }
 
     std::cout << "== courbes statiques (INPUT 5, attaque 5, release 5) : entree dBFS -> GR dB ==\n";
     for (int r = 0; r < 8; ++r)
