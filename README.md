@@ -45,6 +45,7 @@ Outil de captures et de mesures sous Linux : `tools/render` (`cmake tools/render
 
 ## Historique
 
+- **1.0.5** : Menu Plugin size : sous-menu « Default size » pour choisir la taille d'ouverture des nouvelles fenêtres (60 / 75 / 100 %, commune à toutes les instances) ; le texte de la ligne d'état se met à jour à chaque réglage.
 - **1.0.4** : correction du scintillement de la ligne d'état (son opacité oscillait entre 100 et 89 % à chaque image) ; chiffres à chasse fixe, le texte ne bouge plus quand la valeur change.
 - **1.0.3** : logo NINE HANDS | DSP plus petit sur la façade.
 - **1.0.2** : façade éclairée en haut à gauche à 45° avec plus de contraste, ombres portées et occlusion renforcées (potards, voyants, boutons, vis) ; bouton BYPASS écrit en un mot (titre en doublon retiré).

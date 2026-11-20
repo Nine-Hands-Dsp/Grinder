@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "NineHandsDefaultSize.h"
 #include "BinaryData.h"
 #include <random>
 
@@ -273,9 +274,9 @@ GrinderEditor::GrinderEditor (GrinderProcessor& p)
     powerLevel = proc.pPower->load() > 0.5f ? 1.0f : 0.0f;
 
     setResizable (true, true);
-    const int idx = proc.uiSizeIdx.load();
+    const int idx = nhsize::openIndex ("Grinder", proc.uiSizeIdx.load(), 3);   // taille de l'instance, sinon taille par défaut choisie
     static const float scales[3] = { 0.6f, 0.75f, 1.0f };
-    applySize (idx < 0 ? kDefaultScale : scales[jlimit (0, 2, idx)]);
+    applySize (scales[jlimit (0, 2, idx)]);
     startTimerHz (30);
 }
 
@@ -1004,8 +1005,16 @@ PopupMenu GrinderEditor::buildContextMenu()
     m.addSubMenu ("MIDI", midi);
     m.addSeparator();
     static const char* sz[3] = { "60 %", "75 %", "100 %" };
-    const int cur = jmax (0, proc.uiSizeIdx.load());
-    for (int i = 0; i < 3; ++i) size.addItem (130 + i, sz[i], true, cur == i);
+    const int defSz = nhsize::defaultIndex ("Grinder", 3);
+    const int cur = nhsize::openIndex ("Grinder", proc.uiSizeIdx.load(), 3);
+    PopupMenu defSizes;
+    for (int i = 0; i < 3; ++i)
+    {
+        size.addItem (130 + i, String (sz[i]) + (i == defSz ? "  (default)" : ""), true, cur == i);
+        defSizes.addItem (nhsize::idDefault + i, sz[i], true, i == defSz);
+    }
+    size.addSeparator();
+    size.addSubMenu ("Default size", defSizes);     // taille des nouvelles fenêtres, commune à toutes les instances
     m.addSubMenu ("Plugin size", size);
     for (int i = 0; i < 4; ++i) gl.addItem (140 + i, "Glow " + String ((i + 1) * 25) + " %" + (i == 3 ? "  (default)" : ""), true, proc.glowIdx.load() == i);
     m.addSubMenu ("Glow intensity", gl);
@@ -1030,7 +1039,8 @@ void GrinderEditor::handleMainMenu (int r)
     else if (r >= 200 && r < 200 + kNumLearn) proc.learnParam = proc.paramIndexOf (kLearnIds[r - 200]);
     else if (r == 250) proc.learnParam = -1;
     else if (r == 251) { for (auto& x : proc.ccMap) x = -1; proc.learnParam = -1; }
-    else if (r >= 130 && r < 133) { proc.uiSizeIdx = r == 130 ? -1 : r - 130; setScaleIndex (r - 130); }
+    else if (r >= 130 && r < 133) { proc.uiSizeIdx = r - 130; setScaleIndex (r - 130); }
+    else if (r >= nhsize::idDefault && r < nhsize::idDefault + 3) { nhsize::setDefaultIndex ("Grinder", r - nhsize::idDefault); proc.uiSizeIdx = -1; setScaleIndex (r - nhsize::idDefault); }
     else if (r >= 140 && r < 144) { proc.glowIdx = r - 140; showStatus ("GLOW  " + String ((r - 139) * 25) + " %"); }
     repaint();
 }
@@ -1142,7 +1152,7 @@ void GrinderEditor::timerCallback()
     // fondu : monte vers 1 pendant un réglage, redescend après 2,5 s ; immobile une fois arrivé (sinon clignotement à 15 Hz)
     const float na = target > statusAlpha ? jmin (1.0f, statusAlpha + 0.28f)
                    : target < statusAlpha ? jmax (0.0f, statusAlpha - 0.11f) : statusAlpha;
-    if (std::abs (na - statusAlpha) > 0.001f) { statusAlpha = na; askRepaint (pill().expanded (4).toNearestInt()); }
+    if (std::abs (na - statusAlpha) > 0.001f || (na > 0.0f && status != lastStatusDrawn)) { statusAlpha = na; lastStatusDrawn = status; askRepaint (pill().expanded (4).toNearestInt()); }
     auto fade = [] (float& v, bool on) { const float n = on ? jmin (1.0f, v + 0.45f) : jmax (0.0f, v - 0.28f); const bool ch = std::abs (n - v) > 0.001f; v = n; return ch; };
     bool lights = false;
     lights |= fade (powerLevel, proc.pPower->load() > 0.5f);

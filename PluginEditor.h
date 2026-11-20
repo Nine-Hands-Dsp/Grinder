@@ -150,6 +150,8 @@ private:
     std::unique_ptr<juce::FileChooser> chooser;
 
     juce::String status;
+
+    juce::String lastStatusDrawn;      // texte affiché au dernier dessin (redessin quand il change)
     double statusTime = -10.0;
     float statusAlpha = 0.0f;
     int hoverZone = 0;
